@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import docx
 import PyPDF2
 import json
+import os
 
 app = FastAPI(title="Resume Keyword Analyzer")
 
@@ -16,16 +17,20 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
+# Base directory of this file
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 # Serve frontend files
-app.mount("/static", StaticFiles(directory="static"), name="static")
+STATIC_DIR = os.path.join(BASE_DIR, "static")
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 @app.get("/")
 async def root():
-    return FileResponse("static/index.html")
-
+    return FileResponse(os.path.join(STATIC_DIR, "index.html"))
 
 # Load keyword list
-with open("../keywords.json", "r") as f:
+KEYWORDS_FILE = os.path.join(BASE_DIR, "../../keywords.json")
+with open(KEYWORDS_FILE, "r") as f:
     KEYWORDS = json.load(f)["Data Analyst"]
 
 # Function to extract text from PDF or DOCX
@@ -34,7 +39,9 @@ def extract_text(file: UploadFile):
         pdf_reader = PyPDF2.PdfReader(file.file)
         text = ""
         for page in pdf_reader.pages:
-            text += page.extract_text() + "\n"
+            page_text = page.extract_text()
+            if page_text:
+                text += page_text + "\n"
         return text
     elif file.filename.endswith(".docx"):
         doc = docx.Document(file.file)
