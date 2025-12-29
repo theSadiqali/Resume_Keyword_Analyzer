@@ -27,10 +27,6 @@ ENV/
 Thumbs.db
 
 # Data files (optional, if you don’t want to commit)
-*.csv
-*.json
-*.pdf
-*.docx
 
 # Models (optional, can be large)
-*.pkl
+
