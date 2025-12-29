@@ -7,9 +7,25 @@ import PyPDF2
 import json
 import os
 
+# -----------------------
+# Paths
+# -----------------------
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+STATIC_DIR = os.path.join(BASE_DIR, "static")
+KEYWORDS_PATH = os.path.join(BASE_DIR, "keywords.json")
+
+# -----------------------
+# Load keywords
+# -----------------------
+with open(KEYWORDS_PATH, "r") as f:
+    KEYWORDS = json.load(f)["Data Analyst"]
+
+# -----------------------
+# Initialize FastAPI
+# -----------------------
 app = FastAPI(title="Resume Keyword Analyzer")
 
-# Allow frontend access
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -17,31 +33,25 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-# Base directory of this file
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-# Serve frontend files
-STATIC_DIR = os.path.join(BASE_DIR, "static")
+# Mount static folder
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
+# -----------------------
+# Routes
+# -----------------------
 @app.get("/")
 async def root():
     return FileResponse(os.path.join(STATIC_DIR, "index.html"))
 
-# Load keyword list
-KEYWORDS_FILE = os.path.join(BASE_DIR, "../../keywords.json")
-with open(KEYWORDS_FILE, "r") as f:
-    KEYWORDS = json.load(f)["Data Analyst"]
-
-# Function to extract text from PDF or DOCX
+# -----------------------
+# Function to extract text
+# -----------------------
 def extract_text(file: UploadFile):
     if file.filename.endswith(".pdf"):
         pdf_reader = PyPDF2.PdfReader(file.file)
         text = ""
         for page in pdf_reader.pages:
-            page_text = page.extract_text()
-            if page_text:
-                text += page_text + "\n"
+            text += page.extract_text() + "\n"
         return text
     elif file.filename.endswith(".docx"):
         doc = docx.Document(file.file)
@@ -50,6 +60,9 @@ def extract_text(file: UploadFile):
     else:
         return None
 
+# -----------------------
+# Analyze Resume
+# -----------------------
 @app.post("/analyze")
 async def analyze_resume(file: UploadFile = File(...)):
     text = extract_text(file)
